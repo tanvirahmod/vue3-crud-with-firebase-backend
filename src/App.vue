@@ -57,37 +57,83 @@
   </div>
 </template>
 
-<script>
+<script setup>
 
-import { ref } from "vue"
+import { ref, onMounted } from "vue"
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc,query, orderBy } from "firebase/firestore"; // get docs replaced to onsnapshoot for live data update
+import { db } from "@/firebase"
+// import { async } from "@firebase/util";
 
+
+
+// a sinple javascript datas
 const todos = ref([
-  {
-    id:1,
-    text:"Breakfast at 9",
-  },
-  {
-    id:2,
-    text:"Coding for 3 Hours",
-  }
+  // {
+  //   id:1,
+  //   text:"Breakfast at 9",
+  // },
+  // {
+  //   id:2,
+  //   text:"Coding for 3 Hours",
+  // }
 ])
+
+// get data from firebase
+onMounted(() => {
+  // const querySnapshot = await getDocs(collection(db, "todos"));
+  // const newTodo = []
+  // querySnapshot.forEach((doc) => {
+  //   // doc.data() is never undefined for query doc snapshots
+  //   console.log(doc.id, " => ", doc.data());
+  //   const todo = {
+  //     id: doc.id,
+  //     text: doc.data().content
+  //   }
+  //   newTodo.push(todo)
+  // });
+  // todos.value = newTodo
+
+  // for descending order
+  const allQueryInDesending = query(collection(db, "todos"), orderBy("date", "desc"));
+
+  onSnapshot(allQueryInDesending, (querySnapshot) => {
+    const newTodo = [];
+    querySnapshot.forEach((doc) => {
+      const todo = {
+        id: doc.id,
+        text: doc.data().content
+      }
+      newTodo.push(todo)
+    });
+    todos.value = newTodo
+  });
+
+})
+
 
 const TodoText = ref('');
 
 
 const AddTodo = () => {
-  let uniqueID = todos.value.length + 1;
-  const insertTodo = {
-    id: uniqueID.toString(),
-    text: TodoText.value
-  }
-  todos.value.unshift(insertTodo);
+  // let uniqueID = todos.value.length + 1;
+  // const insertTodo = {
+  //   id: uniqueID.toString(),
+  //   text: TodoText.value
+  // }
+  // todos.value.unshift(insertTodo);
+
+  addDoc(collection(db, "todos"), {
+    content: TodoText.value,
+    date: Date.now()
+
+  });
   TodoText.value = "";
-  return insertTodo;
 }
 
+
+// delete totos
 const deleteTodo = id => {
-  todos.value = todos.value.filter(todo => todo.id !== id)
+  deleteDoc(doc(db, "todos", id));
 }
 
 
@@ -95,38 +141,27 @@ const deleteTodo = id => {
 let popupVar = ref(false);
 let updateVal = ref();
 let index;
-
+let uniqueID;
 
 const popup = (id) => {
   popupVar.value = true;
   index = todos.value.findIndex(i => i.id === id);
   updateVal.value = todos.value[index].text;
+  uniqueID = id;
 }
 
 // update todo
 const UpdateTodo = () => {
-  todos.value[index].text = updateVal.value
+  // todos.value[index].text = updateVal.value
   popupVar.value = false;
+
+
+  updateDoc(doc(db, "todos", uniqueID), {
+    content: updateVal.value
+  });
 }
 
-export default {
-  name: 'App',
-  data() {
-    return {
-      follower: 0,
-      popupVar,
-      todos,
-      list_length: todos.value.length,
-      AddTodo,
-      TodoText,
-      deleteTodo,
-      popup,
-      updateVal,
-      UpdateTodo
-    }
-  }
 
-}
 </script>
 
 
